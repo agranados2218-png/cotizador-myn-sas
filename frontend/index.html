@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M&N Laboratories - Cotizador Dinámico de Manufactura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-[#0A1F1C] font-sans text-[#CCFBF1] antialiased">
+
+    <!-- VISTA 1: LOGIN -->
+    <section id="view-login" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-[#061412] p-8 rounded-2xl shadow-2xl w-full max-w-md border-2 border-[#14B8A6]">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-[#14B8A6] tracking-wide">M&N LABORATORIES</h1>
+                <p class="text-xs text-[#99F6E4] mt-1">Manufacturing & Novel Products • ISO 22716</p>
+            </div>
+            <form onsubmit="validarLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-[#5EEAD4] mb-1.5">Usuario Corporativo</label>
+                    <input id="login-user" type="email" value="a.granados2218@gmail.com" required 
+                           class="w-full px-4 py-2.5 bg-[#0F2E29] border border-[#14B8A6]/50 rounded-lg text-white focus:outline-none focus:border-[#14B8A6]">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-[#5EEAD4] mb-1.5">Contraseña</label>
+                    <input id="login-pass" type="password" value="admin123" required 
+                           class="w-full px-4 py-2.5 bg-[#0F2E29] border border-[#14B8A6]/50 rounded-lg text-white focus:outline-none focus:border-[#14B8A6]">
+                </div>
+                <p id="login-msg" class="text-xs text-red-400 hidden"></p>
+                <button type="submit" class="w-full bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold py-3 rounded-lg transition shadow-lg">
+                    Ingresar al Sistema
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div id="app-shell" class="hidden min-h-screen flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#061412] border-r border-[#14B8A6]/30 flex flex-col shrink-0">
+            <div class="p-6 border-b border-[#14B8A6]/30">
+                <h2 class="text-xl font-bold text-[#14B8A6]">M&N LABORATORIES</h2>
+                <span class="text-xs text-[#99F6E4]">Cotizador Maquila • Gerencia</span>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="showSubView('dashboard')" id="nav-dashboard" class="w-full text-left px-4 py-3 rounded-lg bg-[#0D9488] text-white font-medium transition">
+                    📊 Dashboard General
+                </button>
+                <button onclick="prepararNuevaCotizacion()" id="nav-cotizador" class="w-full text-left px-4 py-3 rounded-lg text-[#A1CCCC] hover:bg-[#0F2E29] transition">
+                    🧪 Cotizar Lote M&N
+                </button>
+                <button onclick="showSubView('autorizar')" id="nav-autorizar" class="w-full text-left px-4 py-3 rounded-lg text-[#A1CCCC] hover:bg-[#0F2E29] transition">
+                    ✅ Autorizar, Editar y PDF
+                </button>
+                <button onclick="showSubView('tarifas')" id="nav-tarifas" class="w-full text-left px-4 py-3 rounded-lg text-[#A1CCCC] hover:bg-[#0F2E29] transition">
+                    ⚙️ Tarifas y Salario Mínimo
+                </button>
+                <button onclick="showSubView('trazabilidad')" id="nav-trazabilidad" class="w-full text-left px-4 py-3 rounded-lg text-[#A1CCCC] hover:bg-[#0F2E29] transition">
+                    📜 Auditoría / Trazabilidad
+                </button>
+            </nav>
+            <div class="p-4 border-t border-[#14B8A6]/30">
+                <button onclick="cerrarSesion()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="flex-1 p-8 overflow-y-auto">
+            
+            <!-- VISTA 2: DASHBOARD -->
+            <div id="sub-dashboard">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-[#CCFBF1]">Panel Gerencial de Cotizaciones</h1>
+                    <button onclick="prepararNuevaCotizacion()" class="bg-[#0D9488] hover:bg-[#0F766E] text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        + Nueva Cotización
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-[#0F2E29] p-6 rounded-2xl border-2 border-[#14B8A6] text-center">
+                        <p class="text-sm text-[#99F6E4]">Cotizaciones Aprobadas</p>
+                        <p id="card-aprobadas" class="text-2xl font-bold text-emerald-400 mt-2">$ 0</p>
+                    </div>
+                    <div class="bg-[#0F2E29] p-6 rounded-2xl border-2 border-[#14B8A6] text-center">
+                        <p class="text-sm text-[#99F6E4]">Pendientes de Autorización</p>
+                        <p id="card-pendientes" class="text-2xl font-bold text-amber-400 mt-2">$ 0</p>
+                    </div>
+                    <div class="bg-[#0F2E29] p-6 rounded-2xl border-2 border-[#14B8A6] text-center">
+                        <p class="text-sm text-[#99F6E4]">Total Lotes Cotizados</p>
+                        <p id="card-count" class="text-2xl font-bold text-[#5EEAD4] mt-2">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-[#061412] rounded-xl border border-[#14B8A6] overflow-hidden">
+                    <div class="px-6 py-4 border-b border-[#14B8A6]/40 font-bold text-[#5EEAD4]">Historial de Cotizaciones Registradas</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0F2E29] text-[#5EEAD4] text-xs uppercase">
+                                <tr>
+                                    <th class="p-4">ID</th>
+                                    <th class="p-4">Cliente / Producto</th>
+                                    <th class="p-4">Grupo / Categoría</th>
+                                    <th class="p-4">Lote (Granel / Und)</th>
+                                    <th class="p-4">Total Venta (IVA Inc.)</th>
+                                    <th class="p-4">Estado</th>
+                                    <th class="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-dashboard" class="divide-y divide-[#14B8A6]/20 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA 3: MÓDULO COTIZADOR -->
+            <div id="sub-cotizador" class="hidden">
+                <div class="flex justify-between items-center mb-6 max-w-5xl">
+                    <h1 id="titulo-form-cotizacion" class="text-2xl font-bold text-[#CCFBF1]">Cotizador Técnico de Manufactura</h1>
+                    <span id="badge-modo-edicion" class="hidden px-3 py-1 bg-sky-500/20 text-sky-300 border border-sky-400 rounded-full text-xs font-bold">
+                        MODO EDICIÓN ACTIVO
+                    </span>
+                </div>
+
+                <div class="bg-[#061412] p-6 rounded-2xl border border-[#14B8A6] max-w-5xl space-y-6">
+                    <input type="hidden" id="edit-id" value="">
+
+                    <!-- Paso 1 -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-[#5EEAD4] mb-3 border-b border-[#14B8A6]/30 pb-1">1. Datos Iniciales y Proceso</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Nombre del Cliente</label>
+                                <input id="cli-nombre" type="text" value="Epidermique" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">NIT / Documento</label>
+                                <input id="cli-nit" type="text" value="900845123-4" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Nombre del Producto</label>
+                                <input id="prod-nombre" type="text" value="Shampoo Capilar" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Proceso</label>
+                                <select id="proceso-sel" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                                    <option>Producción en una sola presentación</option>
+                                    <option>Producción en múltiples presentaciones</option>
+                                    <option>Reacondicionamiento</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2 -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-[#5EEAD4] mb-3 border-b border-[#14B8A6]/30 pb-1">2. Grupo, Categoría y Granel</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Grupo</label>
+                                <select id="grupo-sel" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                                    <option>EMULSIONES</option>
+                                    <option>LIQUIDOS</option>
+                                    <option>MAQUILLAJE</option>
+                                    <option>POLVOS</option>
+                                    <option>LABIALES</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Categoría</label>
+                                <select id="cat-sel" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                                    <option>SHAMPOO</option>
+                                    <option>CREMA</option>
+                                    <option>FOTOPROTECTOR</option>
+                                    <option>SERUM</option>
+                                    <option>GEL</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Capacidad x Und (ml/g)</label>
+                                <input id="cap-und" type="number" value="20" min="1" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Granel Total (Kg)</label>
+                                <input id="granel-kg" type="number" value="5200" min="1" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Valor MP por Kg ($)</label>
+                                <input id="mp-valor-kg" type="number" value="1000" min="0" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                        </div>
+
+                        <div class="mt-3 bg-[#0F2E29]/70 px-4 py-2.5 rounded-lg border border-[#14B8A6]/30 flex flex-wrap justify-between items-center text-xs">
+                            <span>Unidades a Producir: <strong id="lbl-unidades" class="text-base text-emerald-400 ml-1">260,000 Und</strong></span>
+                            <span>Costo Granel: <strong id="lbl-costo-granel" class="text-white ml-1">$ 5,200,000</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3: Presentación y Mano de Obra Parametrizada -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-[#5EEAD4] mb-3 border-b border-[#14B8A6]/30 pb-1">3. Presentación, Mano de Obra y Recursos</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Tipo de Presentación</label>
+                                <select id="presentacion-sel" onchange="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                                    <option value="envase" data-name="Envase y Tapa">ENVASE Y TAPA</option>
+                                    <option value="tubo" data-name="Tubo Colapsible">TUBO COLAPSIBLE</option>
+                                    <option value="pote" data-name="Pote">POTE</option>
+                                    <option value="sachet" data-name="Sachet">SACHET</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Horas Operario (<span id="tag-hr-op">$15,000</span>/h)</label>
+                                <input id="hr-op" type="number" value="40" min="0" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Horas Profesional (<span id="tag-hr-prof">$50,000</span>/h)</label>
+                                <input id="hr-prof" type="number" value="8" min="0" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[#99F6E4] mb-1">Horas Máquina (<span id="tag-hr-maq">$45,000</span>/h)</label>
+                                <input id="hr-maq" type="number" value="24" min="0" oninput="calcular()" class="w-full bg-[#0F2E29] border border-[#14B8A6]/40 rounded-lg p-2.5 text-sm text-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs bg-[#0F2E29]/50 p-3 rounded-lg border border-[#14B8A6]/20">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chk-micro" checked onchange="calcular()" class="accent-teal-500"> Microbiológico (<span id="tag-micro">$450k</span>)</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chk-plegadiza" checked onchange="calcular()" class="accent-teal-500"> Caja Plegadiza</label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chk-corrugada" checked onchange="calcular()" class="accent-teal-500"> Caja Corrugada</label>
+                            <div class="flex items-center gap-1">
+                                <span>Días Bodega (<span id="tag-bodega">$15k</span>/d):</span>
+                                <input id="dias-alm" type="number" value="0" min="0" oninput="calcular()" class="w-14 bg-[#061412] border border-[#14B8A6]/50 rounded px-1.5 py-0.5 text-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 4: Rentabilidad y Totales -->
+                    <div class="bg-[#0F2E29] p-5 rounded-xl border border-[#14B8A6] grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <div class="space-y-1 text-xs">
+                            <p class="text-[#99F6E4]">Costo Directo Lote: <span id="lbl-directo" class="font-bold text-white">$ 0</span></p>
+                            <p class="text-[#99F6E4]">Costo Indirecto (<span id="tag-ind-pct">15%</span>): <span id="lbl-indirecto" class="font-bold text-white">$ 0</span></p>
+                            <p class="text-[#99F6E4]">Costo Unitario Base: <span id="lbl-unit-base" class="font-bold text-[#5EEAD4]">$ 0</span></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-[#5EEAD4] font-bold mb-1">Factor Rentabilidad (%)</label>
+                            <select id="rentabilidad-sel" onchange="calcular()" class="w-full bg-[#061412] border border-[#14B8A6] rounded-lg p-2 text-sm text-white font-semibold">
+                                <option value="0">0% (Costo Base)</option>
+                                <option value="0.10">10% Rentabilidad</option>
+                                <option value="0.20" selected>20% Rentabilidad</option>
+                                <option value="0.30">30% Rentabilidad</option>
+                                <option value="0.40">40% Rentabilidad</option>
+                            </select>
+                            <p class="text-[11px] text-emerald-300 mt-1">Precio Venta Unidad: <strong id="lbl-unit-venta">$ 0</strong></p>
+                        </div>
+
+                        <div class="text-right">
+                            <p class="text-xs text-[#99F6E4]">Subtotal Venta: <span id="lbl-sub" class="font-semibold text-white">$ 0</span></p>
+                            <p class="text-xs text-[#99F6E4]">IVA (<span id="tag-iva-pct">19%</span>): <span id="lbl-iva" class="font-semibold text-white">$ 0</span></p>
+                            <p class="text-xs uppercase text-[#5EEAD4] mt-1">Total Cotización</p>
+                            <p id="lbl-tot" class="text-2xl font-bold text-emerald-400">$ 0</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button onclick="showSubView('dashboard')" class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm">Cancelar</button>
+                        <button id="btn-guardar-cot" onclick="guardarCotizacion()" class="bg-[#0D9488] hover:bg-[#0F766E] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg transition">Guardar Cotización</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA 4: AUTORIZAR Y EDITAR -->
+            <div id="sub-autorizar" class="hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-[#CCFBF1]">Bandeja de Autorización y Edición</h1>
+                        <p class="text-xs text-[#99F6E4] mt-1">Al autorizar se genera automáticamente el PDF con las tarifas vigentes al momento de emisión.</p>
+                    </div>
+                    <select id="filtro-estado" onchange="renderizarTablas()" class="bg-[#061412] border border-[#14B8A6] rounded-lg px-4 py-2 text-sm text-[#CCFBF1]">
+                        <option value="TODOS">Mostrar Todos los Estados</option>
+                        <option value="PENDIENTE">Solo Pendientes</option>
+                        <option value="APROBADA">Solo Aprobadas</option>
+                        <option value="RECHAZADA">Solo Rechazadas</option>
+                    </select>
+                </div>
+
+                <div class="bg-[#061412] rounded-xl border border-[#14B8A6] overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-[#0F2E29] text-[#5EEAD4] text-xs uppercase">
+                                <tr>
+                                    <th class="p-4">ID</th>
+                                    <th class="p-4">Cliente / Producto</th>
+                                    <th class="p-4">Especificación Técnica</th>
+                                    <th class="p-4">Total (IVA Inc.)</th>
+                                    <th class="p-4">Estado</th>
+                                    <th class="p-4 text-center">Gestión</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-autorizacion" class="divide-y divide-[#14B8A6]/20 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VISTA 5: MÓDULO PARAMETRIZACIÓN ANUAL (SALARIO MÍNIMO E INFLACIÓN) -->
+            <div id="sub-tarifas" class="hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 max-w-5xl">
+                    <div>
+                        <h1 class="text-2xl font-bold text-[#CCFBF1]">Parametrización Anual de Tarifas y Salario Mínimo</h1>
+                        <p class="text-xs text-[#99F6E4] mt-1">Actualiza los costos operativos por decreto anual sin afectar cotizaciones históricas ya emitidas.</p>
+                    </div>
+                    <span class="px-3 py-1.5 bg-teal-500/20 text-teal-300 border border-teal-400 rounded-lg text-xs font-bold">
+                        Vigencia Tarifaria: <span id="lbl-anio-vigencia">2026</span>
+                    </span>
+                </div>
+
+                <!-- Herramienta de Incremento Masivo Anual (IPC / SMLMV) -->
+                <div class="bg-[#0F2E29] p-5 rounded-2xl border-2 border-[#14B8A6] max-w-5xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white">📈 Reajuste Automático por Decreto Salario Mínimo / IPC</h3>
+                        <p class="text-xs text-[#99F6E4] mt-0.5">Aplica un porcentaje de incremento simultáneo a mano de obra, maquinaria y servicios de planta.</p>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <div class="flex items-center bg-[#061412] border border-[#14B8A6] rounded-lg px-3 py-2">
+                            <input id="pct-reajuste" type="number" step="0.1" value="9.5" class="w-16 bg-transparent text-white font-bold text-sm focus:outline-none">
+                            <span class="text-xs text-[#5EEAD4] font-bold">%</span>
+                        </div>
+                        <button onclick="aplicarIncrementoAnual()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2.5 rounded-lg text-xs transition shadow">
+                            Aplicar Reajuste Anual
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Edición Manual de Tablas Maestras -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
+                    <div class="bg-[#061412] p-6 rounded-2xl border border-[#14B8A6] space-y-4">
+                        <h3 class="text-sm font-bold uppercase text-[#5EEAD4] border-b border-[#14B8A6]/30 pb-2">1. Mano de Obra, Maquinaria y Bodega</h3>
+                        <div class="grid grid-cols-2 gap-3 items-center text-xs">
+                            <label class="text-[#99F6E4]">Hora Operario Común ($):</label>
+                            <input id="cfg-hr-op" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Hora Profesional / Químico ($):</label>
+                            <input id="cfg-hr-prof" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Hora Máquina Industrial ($):</label>
+                            <input id="cfg-hr-maq" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Almacenamiento Bodega / Día ($):</label>
+                            <input id="cfg-bodega" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Análisis Microbiológico Lote ($):</label>
+                            <input id="cfg-micro" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+                        </div>
+                    </div>
+
+                    <div class="bg-[#061412] p-6 rounded-2xl border border-[#14B8A6] space-y-4">
+                        <h3 class="text-sm font-bold uppercase text-[#5EEAD4] border-b border-[#14B8A6]/30 pb-2">2. Tarifas Base Envases e Impuestos</h3>
+                        <div class="grid grid-cols-2 gap-3 items-center text-xs">
+                            <label class="text-[#99F6E4]">Envase y Tapa Estándar ($/u):</label>
+                            <input id="cfg-env-envase" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Tubo Colapsible ($/u):</label>
+                            <input id="cfg-env-tubo" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Pote Cosmético ($/u):</label>
+                            <input id="cfg-env-pote" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">Sachet Trilaminado ($/u):</label>
+                            <input id="cfg-env-sachet" type="number" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+
+                            <label class="text-[#99F6E4]">IVA Nacional Vigente (%):</label>
+                            <input id="cfg-iva" type="number" step="0.1" class="bg-[#0F2E29] border border-[#14B8A6]/50 rounded p-2 text-white font-semibold">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="max-w-5xl mt-6 flex justify-end">
+                    <button onclick="guardarTarifasManuales()" class="bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold px-8 py-3 rounded-lg shadow-lg transition">
+                        💾 Guardar y Actualizar Catálogo PostgreSQL
+                    </button>
+                </div>
+            </div>
+
+            <!-- VISTA 6: AUDITORÍA / TRAZABILIDAD -->
+            <div id="sub-trazabilidad" class="hidden">
+                <h1 class="text-2xl font-bold text-[#CCFBF1] mb-2">Historial de Trazabilidad y Auditoría</h1>
+                <p class="text-xs text-[#99F6E4] mb-6">Registro de cotizaciones, aprobaciones y actualizaciones de tarifas salariales.</p>
+
+                <div class="bg-[#061412] rounded-xl border border-[#14B8A6] overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-[#0F2E29] text-[#5EEAD4] text-xs uppercase">
+                            <tr>
+                                <th class="p-4"># Log</th>
+                                <th class="p-4">Referencia</th>
+                                <th class="p-4">Responsable</th>
+                                <th class="p-4">Estado / Acción</th>
+                                <th class="p-4">Detalle</th>
+                                <th class="p-4">Fecha y Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-trazabilidad" class="divide-y divide-[#14B8A6]/20 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL PDF -->
+    <div id="modal-pdf" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-[#061412] border-2 border-[#14B8A6] rounded-2xl max-w-3xl w-full p-6 shadow-2xl my-8">
+            <div class="flex justify-between items-center pb-4 border-b border-[#14B8A6]/30 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400 rounded text-xs font-bold">APROBADA</span>
+                    <h2 class="text-lg font-bold text-white">Cotización Comercial Oficial (PDF)</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="descargarPDFActual()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow">
+                        📥 Descargar PDF
+                    </button>
+                    <button onclick="cerrarModalPDF()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+
+            <div id="pdf-printable-area" class="bg-white text-slate-800 p-8 rounded-lg">
+                <div class="flex justify-between items-start border-b-2 border-teal-700 pb-4 mb-6">
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-teal-800 tracking-tight">M&N LABORATORIES S.A.S.</h1>
+                        <p class="text-xs text-slate-500">Manufacturing & Novel Products • Certificación ISO 22716</p>
+                        <p class="text-xs text-slate-500">NIT: 901.456.789-0 • Cota, Cundinamarca - Colombia</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded border border-emerald-300 mb-1">
+                            COTIZACIÓN AUTORIZADA
+                        </span>
+                        <p id="pdf-num" class="text-lg font-bold text-slate-900">N° COT-001</p>
+                        <p id="pdf-fecha" class="text-xs text-slate-500">Fecha: 2026-11-25</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-6 grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <p class="text-slate-400 uppercase font-semibold">Cliente / Solicitante</p>
+                        <p id="pdf-cliente" class="text-sm font-bold text-slate-900 mt-0.5">-</p>
+                        <p id="pdf-nit" class="text-slate-600">NIT: -</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 uppercase font-semibold">Producto y Proceso</p>
+                        <p id="pdf-producto" class="text-sm font-bold text-teal-800 mt-0.5">-</p>
+                        <p id="pdf-proceso" class="text-slate-600">-</p>
+                    </div>
+                </div>
+
+                <table class="w-full text-left border-collapse mb-6 text-xs">
+                    <thead>
+                        <tr class="bg-teal-800 text-white uppercase">
+                            <th class="p-2.5">Concepto / Especificación de Manufactura</th>
+                            <th class="p-2.5 text-center">Cantidad Lote</th>
+                            <th class="p-2.5 text-right">Valor Unitario</th>
+                            <th class="p-2.5 text-right">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pdf-tabla-detalle" class="divide-y divide-slate-200 border-b border-slate-300"></tbody>
+                </table>
+
+                <div class="flex justify-end mb-8">
+                    <div class="w-72 space-y-1.5 text-xs">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Subtotal Servicio Manufactura:</span>
+                            <span id="pdf-subtotal" class="font-semibold">$ 0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>IVA Aplicado:</span>
+                            <span id="pdf-iva" class="font-semibold">$ 0</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-bold text-teal-900 border-t-2 border-teal-700 pt-2">
+                            <span>TOTAL COTIZACIÓN:</span>
+                            <span id="pdf-total">$ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200 pt-4 flex justify-between items-end text-[11px] text-slate-500">
+                    <div class="max-w-md">
+                        <p class="font-bold text-slate-700 mb-1">Condiciones Comerciales M&N Laboratories:</p>
+                        <p>• Validez de la oferta: 30 días calendario a partir de la autorización.</p>
+                        <p>• Tarifas congeladas según vigencia salarial y de insumos del periodo.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-40 border-b border-slate-400 mb-1 mx-auto"></div>
+                        <p class="font-bold text-slate-700">Gerencia General</p>
+                        <p>M&N Laboratories S.A.S.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let intentos = 0;
+        let cotizacionPdfActual = null;
+
+        let tarifas = {
+            anio: 2026,
+            hrOp: 15000,
+            hrProf: 50000,
+            hrMaq: 45000,
+            bodegaDia: 15000,
+            microbiologico: 450000,
+            envases: {
+                envase: 850,
+                tubo: 1100,
+                pote: 1650,
+                sachet: 220
+            },
+            ivaPct: 19
+        };
+
+        let cotizaciones = [
+            {
+                id: 1,
+                cliente: "Epidermique",
+                nit: "900845123-4",
+                producto: "Shampoo Capilar",
+                proceso: "Producción en una sola presentación",
+                grupo: "EMULSIONES",
+                categoria: "SHAMPOO",
+                capUnd: 20,
+                granelKg: 5200,
+                mpValorKg: 1000,
+                unidades: 260000,
+                presentacionKey: "envase",
+                presentacionNombre: "Envase y Tapa",
+                hrOp: 40,
+                hrProf: 8,
+                hrMaq: 24,
+                rentabilidadVal: "0.20",
+                chkMicro: true,
+                chkPlegadiza: true,
+                chkCorrugada: true,
+                diasAlm: 0,
+                unitVenta: 1295.31,
+                subtotal: 336780000,
+                iva: 63988200,
+                total: 400768200,
+                estado: "APROBADA"
+            }
+        ];
+
+        let logsTrazabilidad = [
+            { id: 1, ref: "COT-001", usuario: "Andrés Granados", estado: "APROBADA", obs: "Cotización aprobada bajo tarifas vigencia 2026", fecha: "2026-11-25 14:00" }
+        ];
+
+        function validarLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('login-pass').value;
+            const msg = document.getElementById('login-msg');
+            if (intentos >= 3) {
+                msg.innerText = "Cuenta bloqueada por superar 3 intentos fallidos.";
+                msg.classList.remove('hidden');
+                return;
+            }
+            if (pass === 'admin123') {
+                intentos = 0;
+                msg.classList.add('hidden');
+                document.getElementById('view-login').classList.add('hidden');
+                document.getElementById('app-shell').classList.remove('hidden');
+                sincronizarInputsTarifas();
+                renderizarTablas();
+            } else {
+                intentos++;
+                msg.innerText = intentos >= 3 ? "Cuenta bloqueada por seguridad." : `Credenciales incorrectas. Intentos restantes: ${3 - intentos}`;
+                msg.classList.remove('hidden');
+            }
+        }
+
+        function cerrarSesion() {
+            document.getElementById('app-shell').classList.add('hidden');
+            document.getElementById('view-login').classList.remove('hidden');
+        }
+
+        function showSubView(sub) {
+            ['dashboard', 'cotizador', 'autorizar', 'tarifas', 'trazabilidad'].forEach(v => {
+                document.getElementById('sub-' + v).classList.add('hidden');
+                const navBtn = document.getElementById('nav-' + v);
+                if (navBtn) {
+                    navBtn.className = v === sub 
+                        ? 'w-full text-left px-4 py-3 rounded-lg bg-[#0D9488] text-white font-medium transition' 
+                        : 'w-full text-left px-4 py-3 rounded-lg text-[#A1CCCC] hover:bg-[#0F2E29] transition';
+                }
+            });
+            document.getElementById('sub-' + sub).classList.remove('hidden');
+            if (sub === 'tarifas') sincronizarInputsTarifas();
+            renderizarTablas();
+        }
+
+        function sincronizarInputsTarifas() {
+            document.getElementById('cfg-hr-op').value = tarifas.hrOp;
+            document.getElementById('cfg-hr-prof').value = tarifas.hrProf;
+            document.getElementById('cfg-hr-maq').value = tarifas.hrMaq;
+            document.getElementById('cfg-bodega').value = tarifas.bodegaDia;
+            document.getElementById('cfg-micro').value = tarifas.microbiologico;
+            document.getElementById('cfg-env-envase').value = tarifas.envases.envase;
+            document.getElementById('cfg-env-tubo').value = tarifas.envases.tubo;
+            document.getElementById('cfg-env-pote').value = tarifas.envases.pote;
+            document.getElementById('cfg-env-sachet').value = tarifas.envases.sachet;
+            document.getElementById('cfg-iva').value = tarifas.ivaPct;
+
+            document.getElementById('tag-hr-op').innerText = '$' + tarifas.hrOp.toLocaleString('es-CO');
+            document.getElementById('tag-hr-prof').innerText = '$' + tarifas.hrProf.toLocaleString('es-CO');
+            document.getElementById('tag-hr-maq').innerText = '$' + tarifas.hrMaq.toLocaleString('es-CO');
+            document.getElementById('tag-bodega').innerText = '$' + (tarifas.bodegaDia / 1000).toFixed(0) + 'k';
+            document.getElementById('tag-micro').innerText = '$' + (tarifas.microbiologico / 1000).toFixed(0) + 'k';
+            document.getElementById('tag-iva-pct').innerText = tarifas.ivaPct + '%';
+        }
+
+        function aplicarIncrementoAnual() {
+            const pct = parseFloat(document.getElementById('pct-reajuste').value) || 0;
+            const factor = 1 + (pct / 100);
+
+            tarifas.anio++;
+            tarifas.hrOp = Math.round(tarifas.hrOp * factor);
+            tarifas.hrProf = Math.round(tarifas.hrProf * factor);
+            tarifas.hrMaq = Math.round(tarifas.hrMaq * factor);
+            tarifas.bodegaDia = Math.round(tarifas.bodegaDia * factor);
+            tarifas.microbiologico = Math.round(tarifas.microbiologico * factor);
+            tarifas.envases.envase = Math.round(tarifas.envases.envase * factor);
+            tarifas.envases.tubo = Math.round(tarifas.envases.tubo * factor);
+            tarifas.envases.pote = Math.round(tarifas.envases.pote * factor);
+            tarifas.envases.sachet = Math.round(tarifas.envases.sachet * factor);
+
+            document.getElementById('lbl-anio-vigencia').innerText = tarifas.anio;
+            sincronizarInputsTarifas();
+
+            const ahora = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            logsTrazabilidad.unshift({
+                id: logsTrazabilidad.length + 1,
+                ref: `TARIFAS-${tarifas.anio}`,
+                usuario: "Andrés Granados",
+                estado: "ACTUALIZADO",
+                obs: `Reajuste anual del +${pct}% aplicado por decreto salarial / IPC`,
+                fecha: ahora
+            });
+
+            alert(`¡Reajuste del +${pct}% aplicado! Las nuevas cotizaciones usarán las tarifas ${tarifas.anio} sin alterar las cotizaciones históricas.`);
+        }
+
+        function guardarTarifasManuales() {
+            tarifas.hrOp = parseFloat(document.getElementById('cfg-hr-op').value) || 0;
+            tarifas.hrProf = parseFloat(document.getElementById('cfg-hr-prof').value) || 0;
+            tarifas.hrMaq = parseFloat(document.getElementById('cfg-hr-maq').value) || 0;
+            tarifas.bodegaDia = parseFloat(document.getElementById('cfg-bodega').value) || 0;
+            tarifas.microbiologico = parseFloat(document.getElementById('cfg-micro').value) || 0;
+            tarifas.envases.envase = parseFloat(document.getElementById('cfg-env-envase').value) || 0;
+            tarifas.envases.tubo = parseFloat(document.getElementById('cfg-env-tubo').value) || 0;
+            tarifas.envases.pote = parseFloat(document.getElementById('cfg-env-pote').value) || 0;
+            tarifas.envases.sachet = parseFloat(document.getElementById('cfg-env-sachet').value) || 0;
+            tarifas.ivaPct = parseFloat(document.getElementById('cfg-iva').value) || 0;
+
+            sincronizarInputsTarifas();
+            const ahora = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            logsTrazabilidad.unshift({
+                id: logsTrazabilidad.length + 1,
+                ref: "CATÁLOGOS",
+                usuario: "Andrés Granados",
+                estado: "ACTUALIZADO",
+                obs: "Actualización manual de tarifas de planta e impuestos",
+                fecha: ahora
+            });
+
+            alert("Tarifas guardadas correctamente en los catálogos maestros.");
+        }
+
+        function prepararNuevaCotizacion() {
+            document.getElementById('edit-id').value = "";
+            document.getElementById('titulo-form-cotizacion').innerText = "Cotizador Técnico de Manufactura";
+            document.getElementById('badge-modo-edicion').classList.add('hidden');
+            document.getElementById('btn-guardar-cot').innerText = "Guardar Cotización";
+
+            document.getElementById('cli-nombre').value = "";
+            document.getElementById('cli-nit').value = "";
+            document.getElementById('prod-nombre').value = "";
+            document.getElementById('cap-und').value = 50;
+            document.getElementById('granel-kg').value = 500;
+            document.getElementById('mp-valor-kg').value = 12000;
+            document.getElementById('hr-op').value = 16;
+            document.getElementById('hr-prof').value = 4;
+            document.getElementById('hr-maq').value = 8;
+            document.getElementById('dias-alm').value = 0;
+
+            sincronizarInputsTarifas();
+            calcular();
+            showSubView('cotizador');
+        }
+
+        function editarCotizacion(id) {
+            const cot = cotizaciones.find(c => c.id === id);
+            if (!cot) return;
+
+            document.getElementById('edit-id').value = cot.id;
+            document.getElementById('titulo-form-cotizacion').innerText = `Editando Cotización #00${cot.id} - ${cot.cliente}`;
+            document.getElementById('badge-modo-edicion').classList.remove('hidden');
+            document.getElementById('btn-guardar-cot').innerText = "Actualizar Cotización";
+
+            document.getElementById('cli-nombre').value = cot.cliente;
+            document.getElementById('cli-nit').value = cot.nit;
+            document.getElementById('prod-nombre').value = cot.producto;
+            document.getElementById('proceso-sel').value = cot.proceso;
+            document.getElementById('grupo-sel').value = cot.grupo;
+            document.getElementById('cat-sel').value = cot.categoria;
+            document.getElementById('cap-und').value = cot.capUnd;
+            document.getElementById('granel-kg').value = cot.granelKg;
+            document.getElementById('mp-valor-kg').value = cot.mpValorKg;
+            document.getElementById('presentacion-sel').value = cot.presentacionKey;
+            document.getElementById('hr-op').value = cot.hrOp;
+            document.getElementById('hr-prof').value = cot.hrProf;
+            document.getElementById('hr-maq').value = cot.hrMaq;
+            document.getElementById('rentabilidad-sel').value = cot.rentabilidadVal;
+            document.getElementById('chk-micro').checked = cot.chkMicro;
+            document.getElementById('chk-plegadiza').checked = cot.chkPlegadiza;
+            document.getElementById('chk-corrugada').checked = cot.chkCorrugada;
+            document.getElementById('dias-alm').value = cot.diasAlm;
+
+            sincronizarInputsTarifas();
+            calcular();
+            showSubView('cotizador');
+        }
+
+        function cambiarEstado(id, nuevoEstado) {
+            const cot = cotizaciones.find(c => c.id === id);
+            if (!cot) return;
+
+            if (cot.estado !== nuevoEstado) {
+                cot.estado = nuevoEstado;
+                const ahora = new Date().toISOString().slice(0, 16).replace('T', ' ');
+                logsTrazabilidad.unshift({
+                    id: logsTrazabilidad.length + 1,
+                    ref: `COT-00${id}`,
+                    usuario: "Andrés Granados",
+                    estado: nuevoEstado,
+                    obs: nuevoEstado === 'APROBADA' ? "Autorizada por Gerencia (PDF generado)" : "Rechazada por Gerencia",
+                    fecha: ahora
+                });
+                renderizarTablas();
+            }
+
+            if (nuevoEstado === 'APROBADA') {
+                abrirVistaPDF(id);
+            }
+        }
+
+        function abrirVistaPDF(id) {
+            const cot = cotizaciones.find(c => c.id === id);
+            if (!cot) return;
+            cotizacionPdfActual = cot;
+
+            const hoy = new Date().toISOString().slice(0, 10);
+            document.getElementById('pdf-num').innerText = `N° COT-00${cot.id}`;
+            document.getElementById('pdf-fecha').innerText = `Fecha: ${hoy}`;
+            document.getElementById('pdf-cliente').innerText = cot.cliente;
+            document.getElementById('pdf-nit').innerText = `NIT / Documento: ${cot.nit}`;
+            document.getElementById('pdf-producto').innerText = `${cot.producto} (${cot.grupo} - ${cot.categoria})`;
+            document.getElementById('pdf-proceso').innerText = `Proceso: ${cot.proceso} • Presentación: ${cot.capUnd} ml/g`;
+
+            document.getElementById('pdf-tabla-detalle').innerHTML = `
+                <tr>
+                    <td class="p-2.5">
+                        <p class="font-bold text-slate-900">Manufactura Integral de Lote (${cot.granelKg.toLocaleString('es-CO')} Kg de Granel)</p>
+                        <p class="text-slate-600 mt-0.5">• <b>Envase:</b> ${cot.presentacionNombre} • <b>Mano de Obra:</b> ${cot.hrOp}h Op. / ${cot.hrProf}h Prof. / ${cot.hrMaq}h Máq.</p>
+                    </td>
+                    <td class="p-2.5 text-center font-semibold">${cot.unidades.toLocaleString('es-CO')} Und</td>
+                    <td class="p-2.5 text-right">$ ${cot.unitVenta.toLocaleString('es-CO', {maximumFractionDigits: 2})}</td>
+                    <td class="p-2.5 text-right font-bold">$ ${cot.subtotal.toLocaleString('es-CO', {maximumFractionDigits: 0})}</td>
+                </tr>
+            `;
+
+            document.getElementById('pdf-subtotal').innerText = '$ ' + cot.subtotal.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('pdf-iva').innerText = '$ ' + cot.iva.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('pdf-total').innerText = '$ ' + cot.total.toLocaleString('es-CO', {maximumFractionDigits: 0});
+
+            document.getElementById('modal-pdf').classList.remove('hidden');
+        }
+
+        function cerrarModalPDF() {
+            document.getElementById('modal-pdf').classList.add('hidden');
+        }
+
+        function descargarPDFActual() {
+            if (!cotizacionPdfActual) return;
+            const elemento = document.getElementById('pdf-printable-area');
+            const opciones = {
+                margin: 0.4,
+                filename: `Cotizacion_MYN_00${cotizacionPdfActual.id}_${cotizacionPdfActual.cliente.replace(/\s+/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opciones).from(elemento).save();
+        }
+
+        function calcular() {
+            const cap = parseFloat(document.getElementById('cap-und').value) || 1;
+            const granelKg = parseFloat(document.getElementById('granel-kg').value) || 0;
+            const mpValKg = parseFloat(document.getElementById('mp-valor-kg').value) || 0;
+
+            const unidades = Math.floor((granelKg * 1000) / cap);
+            const costoGranel = granelKg * mpValKg;
+
+            const presKey = document.getElementById('presentacion-sel').value;
+            const presVal = tarifas.envases[presKey] || 0;
+
+            const hrOp = parseFloat(document.getElementById('hr-op').value) || 0;
+            const hrProf = parseFloat(document.getElementById('hr-prof').value) || 0;
+            const hrMaq = parseFloat(document.getElementById('hr-maq').value) || 0;
+            const diasAlm = parseInt(document.getElementById('dias-alm').value) || 0;
+            const rentPct = parseFloat(document.getElementById('rentabilidad-sel').value) || 0;
+
+            let costoUnitEmpaque = presVal;
+            if (document.getElementById('chk-plegadiza').checked) costoUnitEmpaque += 150;
+            if (document.getElementById('chk-corrugada').checked) costoUnitEmpaque += 40;
+
+            let costoPlantaFijo = (hrOp * tarifas.hrOp) + (hrProf * tarifas.hrProf) + (hrMaq * tarifas.hrMaq) + (diasAlm * tarifas.bodegaDia);
+            if (document.getElementById('chk-micro').checked) costoPlantaFijo += tarifas.microbiologico;
+
+            const costoDirecto = costoGranel + (unidades * costoUnitEmpaque) + costoPlantaFijo;
+            const costoIndirecto = costoDirecto * 0.15;
+            const costoTerminado = costoDirecto + costoIndirecto;
+            const unitBase = unidades > 0 ? (costoTerminado / unidades) : 0;
+
+            const subtotalVenta = costoTerminado * (1 + rentPct);
+            const unitVenta = unidades > 0 ? (subtotalVenta / unidades) : 0;
+            const iva = subtotalVenta * (tarifas.ivaPct / 100);
+            const total = subtotalVenta + iva;
+
+            document.getElementById('lbl-unidades').innerText = unidades.toLocaleString('es-CO') + ' Und';
+            document.getElementById('lbl-costo-granel').innerText = '$ ' + costoGranel.toLocaleString('es-CO');
+            document.getElementById('lbl-directo').innerText = '$ ' + costoDirecto.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('lbl-indirecto').innerText = '$ ' + costoIndirecto.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('lbl-unit-base').innerText = '$ ' + unitBase.toLocaleString('es-CO', {maximumFractionDigits: 2});
+            document.getElementById('lbl-unit-venta').innerText = '$ ' + unitVenta.toLocaleString('es-CO', {maximumFractionDigits: 2});
+            document.getElementById('lbl-sub').innerText = '$ ' + subtotalVenta.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('lbl-iva').innerText = '$ ' + iva.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('lbl-tot').innerText = '$ ' + total.toLocaleString('es-CO', {maximumFractionDigits: 0});
+
+            return { unidades, unitVenta, subtotal: subtotalVenta, iva, total };
+        }
+
+        function guardarCotizacion() {
+            const cliente = document.getElementById('cli-nombre').value.trim();
+            const nit = document.getElementById('cli-nit').value.trim();
+            const producto = document.getElementById('prod-nombre').value.trim();
+            if (!cliente || !nit || !producto) {
+                alert("Completa Cliente, NIT y Nombre del Producto.");
+                return;
+            }
+
+            const res = calcular();
+            const presSel = document.getElementById('presentacion-sel');
+            const editId = document.getElementById('edit-id').value;
+            const ahora = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+            const datos = {
+                cliente,
+                nit,
+                producto,
+                proceso: document.getElementById('proceso-sel').value,
+                grupo: document.getElementById('grupo-sel').value,
+                categoria: document.getElementById('cat-sel').value,
+                capUnd: parseFloat(document.getElementById('cap-und').value) || 1,
+                granelKg: parseFloat(document.getElementById('granel-kg').value) || 0,
+                mpValorKg: parseFloat(document.getElementById('mp-valor-kg').value) || 0,
+                unidades: res.unidades,
+                presentacionKey: presSel.value,
+                presentacionNombre: presSel.options[presSel.selectedIndex].getAttribute('data-name'),
+                hrOp: parseFloat(document.getElementById('hr-op').value) || 0,
+                hrProf: parseFloat(document.getElementById('hr-prof').value) || 0,
+                hrMaq: parseFloat(document.getElementById('hr-maq').value) || 0,
+                rentabilidadVal: document.getElementById('rentabilidad-sel').value,
+                chkMicro: document.getElementById('chk-micro').checked,
+                chkPlegadiza: document.getElementById('chk-plegadiza').checked,
+                chkCorrugada: document.getElementById('chk-corrugada').checked,
+                diasAlm: parseInt(document.getElementById('dias-alm').value) || 0,
+                unitVenta: res.unitVenta,
+                subtotal: res.subtotal,
+                iva: res.iva,
+                total: res.total
+            };
+
+            if (editId) {
+                const idx = cotizaciones.findIndex(c => c.id === parseInt(editId));
+                cotizaciones[idx] = { ...cotizaciones[idx], ...datos };
+                logsTrazabilidad.unshift({
+                    id: logsTrazabilidad.length + 1,
+                    ref: `COT-00${editId}`,
+                    usuario: "Andrés Granados",
+                    estado: cotizaciones[idx].estado,
+                    obs: "Edición de cotización con tarifas vigentes",
+                    fecha: ahora
+                });
+            } else {
+                const nuevoId = cotizaciones.length + 1;
+                cotizaciones.push({ id: nuevoId, ...datos, estado: "PENDIENTE" });
+                logsTrazabilidad.unshift({
+                    id: logsTrazabilidad.length + 1,
+                    ref: `COT-00${nuevoId}`,
+                    usuario: "Andrés Granados",
+                    estado: "PENDIENTE",
+                    obs: `Nueva cotización (${res.unidades.toLocaleString('es-CO')} und) - Vigencia ${tarifas.anio}`,
+                    fecha: ahora
+                });
+            }
+
+            showSubView('autorizar');
+        }
+
+        function badgeEstado(estado) {
+            if (estado === 'APROBADA') return `<span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 rounded-full text-xs font-semibold">APROBADA</span>`;
+            if (estado === 'RECHAZADA') return `<span class="px-2.5 py-1 bg-red-500/20 text-red-300 border border-red-400/40 rounded-full text-xs font-semibold">RECHAZADA</span>`;
+            if (estado === 'ACTUALIZADO') return `<span class="px-2.5 py-1 bg-sky-500/20 text-sky-300 border border-sky-400/40 rounded-full text-xs font-semibold">TARIFAS</span>`;
+            return `<span class="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded-full text-xs font-semibold">PENDIENTE</span>`;
+        }
+
+        function renderizarTablas() {
+            let sumAprobadas = 0;
+            let sumPendientes = 0;
+            cotizaciones.forEach(c => {
+                if (c.estado === 'APROBADA') sumAprobadas += c.total;
+                if (c.estado === 'PENDIENTE') sumPendientes += c.total;
+            });
+            document.getElementById('card-aprobadas').innerText = '$ ' + sumAprobadas.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('card-pendientes').innerText = '$ ' + sumPendientes.toLocaleString('es-CO', {maximumFractionDigits: 0});
+            document.getElementById('card-count').innerText = cotizaciones.length;
+
+            // Dashboard
+            document.getElementById('tabla-dashboard').innerHTML = cotizaciones.map(c => `
+                <tr class="hover:bg-[#0F2E29]/60">
+                    <td class="p-4 font-bold">#00${c.id}</td>
+                    <td class="p-4">${c.cliente} <span class="text-xs text-[#99F6E4] block">${c.producto}</span></td>
+                    <td class="p-4 text-xs">${c.grupo} • ${c.categoria}</td>
+                    <td class="p-4 text-xs">${c.granelKg.toLocaleString('es-CO')} Kg / <b>${c.unidades.toLocaleString('es-CO')} Und</b></td>
+                    <td class="p-4 font-semibold">$ ${c.total.toLocaleString('es-CO', {maximumFractionDigits: 0})}</td>
+                    <td class="p-4">${badgeEstado(c.estado)}</td>
+                    <td class="p-4 text-center space-x-1">
+                        <button onclick="cambiarEstado(${c.id}, 'APROBADA')" title="Autorizar y Generar PDF" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs">✔</button>
+                        <button onclick="cambiarEstado(${c.id}, 'RECHAZADA')" title="Rechazar" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs">✖</button>
+                        <button onclick="editarCotizacion(${c.id})" title="Editar" class="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-xs">✏️</button>
+                        ${c.estado === 'APROBADA' ? `<button onclick="abrirVistaPDF(${c.id})" title="Ver PDF" class="px-2 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded text-xs">📄</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Autorización
+            const filtro = document.getElementById('filtro-estado').value;
+            const filtradas = filtro === 'TODOS' ? cotizaciones : cotizaciones.filter(c => c.estado === filtro);
+            document.getElementById('tabla-autorizacion').innerHTML = filtradas.map(c => `
+                <tr class="hover:bg-[#0F2E29]/60">
+                    <td class="p-4 font-bold">#00${c.id}</td>
+                    <td class="p-4 font-medium">${c.cliente}<span class="text-xs text-[#99F6E4] block">${c.producto} (${c.nit})</span></td>
+                    <td class="p-4 text-xs space-y-1">
+                        <div>• <b>${c.grupo} / ${c.categoria}:</b> ${c.granelKg} Kg (${c.capUnd} ml/g) = <b>${c.unidades.toLocaleString('es-CO')} Und</b></div>
+                        <div class="text-[#99F6E4]">• <b>Planta:</b> ${c.hrOp}h Op. | ${c.hrProf}h Prof. | ${c.hrMaq}h Máq.</div>
+                    </td>
+                    <td class="p-4 font-bold text-emerald-400">$ ${c.total.toLocaleString('es-CO', {maximumFractionDigits: 0})}</td>
+                    <td class="p-4">${badgeEstado(c.estado)}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex flex-wrap justify-center gap-1.5">
+                            <button onclick="cambiarEstado(${c.id}, 'APROBADA')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold">Autorizar</button>
+                            <button onclick="cambiarEstado(${c.id}, 'RECHAZADA')" class="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold">Rechazar</button>
+                            <button onclick="editarCotizacion(${c.id})" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold">Editar</button>
+                            ${c.estado === 'APROBADA' ? `<button onclick="abrirVistaPDF(${c.id})" class="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold">📄 Ver PDF</button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Trazabilidad
+            document.getElementById('tabla-trazabilidad').innerHTML = logsTrazabilidad.map(l => `
+                <tr class="hover:bg-[#0F2E29]/60">
+                    <td class="p-4 font-mono text-xs">#${l.id}</td>
+                    <td class="p-4 font-bold">${l.ref}</td>
+                    <td class="p-4">${l.usuario}</td>
+                    <td class="p-4">${badgeEstado(l.estado)}</td>
+                    <td class="p-4 text-[#99F6E4]">${l.obs}</td>
+                    <td class="p-4 text-xs text-slate-400">${l.fecha}</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
